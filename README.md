@@ -19,7 +19,7 @@ So this is a shell script wrapped in a command. It answers the same questions a 
 
 ## What it reports
 
-**Routing leaks.** If you use something like [skill-model-router](https://github.com/jmrona/skill-model-router-plugin) to pin a model per skill, that skill is still reachable through opencode's native `skill` tool — which runs it inline on the session model, quietly defeating the routing. This section counts how often that happened, and only counts calls made *after* routing became active for that skill, so historic calls from before you set it up are shown separately rather than inflating the number. The fix is a `deny` entry in `permission.skill`.
+**Routing leaks.** Only shown if something is actually routing skills — this section and the model breakdown below are omitted entirely when nothing registers `skill_*` tools, which is the common case. If you use something like [skill-model-router](https://github.com/jmrona/skill-model-router-plugin) to pin a model per skill, that skill is still reachable through opencode's native `skill` tool — which runs it inline on the session model, quietly defeating the routing. This section counts how often that happened, and only counts calls made *after* routing became active for that skill, so historic calls from before you set it up are shown separately rather than inflating the number. The fix is a `deny` entry in `permission.skill`.
 
 **Usage.** Every skill, split by how it was invoked (`native` vs `routed`), with call counts, error rate, mean duration and last use.
 

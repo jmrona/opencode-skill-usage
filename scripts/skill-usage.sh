@@ -106,14 +106,29 @@ CREATE TEMP TABLE routing_from AS SELECT MIN(t0) AS t0 FROM routed_since;
 CREATE TEMP TABLE installed(skill TEXT);
 INSERT INTO installed(skill) VALUES $INSTALLED;
 
-.print ''
-.print '## Routing leaks'
-.print ''
-.print 'Skills with routing metadata that were nevertheless invoked through the native'
-.print 'skill tool, which runs them inline on the session model. Only calls made after'
-.print 'routing became active for that skill count as leaks; earlier ones predate the'
-.print 'router and are shown separately.'
-.print ''
+.mode list
+-- The two routing sections only mean anything when something is registering
+-- skill_* tools, such as skill-model-router. Without that, printing the headings
+-- unconditionally left a stray "Fix: ..." line under an empty section, reading as
+-- broken rather than as not applicable. List mode emits plain lines, and the
+-- WHERE EXISTS drops the block entirely when no routed call has ever been seen.
+--
+-- Three traps here, all of which bit while writing it:
+--   1. One multi-line literal, not a UNION ALL chain: in a chain, WHERE binds
+--      only to the final branch, so every earlier line prints regardless.
+--   2. A comment must not sit directly before a dot-command, which leaves the
+--      parser mid-statement and the dot-command is then read as SQL.
+--   3. No backticks anywhere in this heredoc. It is unquoted so that SINCE and
+--      INSTALLED interpolate, which means bash runs backticked text as a command.
+SELECT '
+## Routing leaks
+
+Skills with routing metadata that were nevertheless invoked through the native
+skill tool, which runs them inline on the session model. Only calls made after
+routing became active for that skill count as leaks; earlier ones predate the
+router and are shown separately.
+' WHERE EXISTS (SELECT 1 FROM routed_since);
+.mode markdown
 
 SELECT
   c.skill                                                            AS skill,
@@ -130,8 +145,12 @@ GROUP BY c.skill
 HAVING leaks > 0
 ORDER BY leaks DESC;
 
-.print ''
-.print 'Fix: deny the leaking skill in permission.skill so only the routed tool remains.'
+.mode list
+SELECT '
+Fix: deny the leaking skill in permission.skill so only the routed tool remains.
+' WHERE EXISTS (SELECT 1 FROM routed_since);
+.mode markdown
+
 .print ''
 .print '## Usage'
 .print ''
@@ -148,13 +167,15 @@ FROM calls
 GROUP BY skill, via
 ORDER BY calls DESC;
 
-.print ''
-.print '## Model that actually served each routed skill'
-.print ''
-.print 'More than one row for a skill means fallbacks happened; the split shows how often.'
-.print 'The model is resolved from the tool part metadata, then the child session row,'
-.print 'then the child session title, which the router formats as skill:name (provider/model).'
-.print ''
+.mode list
+SELECT '
+## Model that actually served each routed skill
+
+More than one row for a skill means fallbacks happened; the split shows how often.
+The model is resolved from the tool part metadata, then the child session row,
+then the child session title, which the router formats as skill:name (provider/model).
+' WHERE EXISTS (SELECT 1 FROM routed_since);
+.mode markdown
 
 SELECT
   c.skill                                       AS skill,
