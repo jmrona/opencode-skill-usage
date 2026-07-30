@@ -22,7 +22,11 @@
 set -uo pipefail
 
 DAYS="${1:-0}"
+# opencode loads skills from both places, so a report that reads only one of them
+# will call a project skill "not installed". Commands run from the project root,
+# which is what makes the relative path work.
 SKILLS_DIR="${SKILLS_DIR:-$HOME/.config/opencode/skills}"
+PROJECT_SKILLS_DIR="${PROJECT_SKILLS_DIR:-./.opencode/skills}"
 
 # --- locate the database -----------------------------------------------------
 find_db() {
@@ -57,20 +61,36 @@ else
   WINDOW="all history"
 fi
 
-# Installed skills as a SQL VALUES list, so "never used" is computed rather than
-# eyeballed. Directories with a SKILL.md only; _shared is not a skill.
-installed_values() {
-  local first=1 n
-  for d in "$SKILLS_DIR"/*/; do
+# Installed skills as (name, scope) pairs, so "unused" is computed against what is
+# actually on disk rather than eyeballed. Directories with a SKILL.md only;
+# _shared is not a skill. A name can legitimately appear in both scopes — opencode
+# warns about the duplicate and picks one — so the rows are merged when reported.
+installed_first=1
+emit_scope() {
+  local dir="$1" scope="$2" n
+  [ -d "$dir" ] || return 0
+  for d in "$dir"/*/; do
+    [ -d "$d" ] || continue
     n="$(basename "$d")"
     [ "$n" = "_shared" ] && continue
     [ -f "$d/SKILL.md" ] || continue
-    [ $first -eq 1 ] && first=0 || printf ","
-    printf "('%s')" "${n//\'/\'\'}"
+    [ $installed_first -eq 1 ] && installed_first=0 || printf ","
+    printf "('%s','%s')" "${n//\'/\'\'}" "$scope"
   done
-  [ $first -eq 1 ] && printf "('')"
+}
+installed_values() {
+  emit_scope "$SKILLS_DIR" global
+  emit_scope "$PROJECT_SKILLS_DIR" project
+  [ $installed_first -eq 1 ] && printf "('','')"
 }
 INSTALLED="$(installed_values)"
+
+# Heading for the unused table: "never used" is only true over all history.
+if [ "$DAYS" -gt 0 ] 2>/dev/null; then
+  UNUSED_HEADING="Installed but not used in the last ${DAYS} days"
+else
+  UNUSED_HEADING="Installed but never used"
+fi
 
 echo "# Skill usage report"
 echo
@@ -79,7 +99,7 @@ echo "Window: **$WINDOW** · database: \`$DB\` · generated $(date '+%Y-%m-%d %H
 sqlite3 -readonly "$DB" <<SQL
 .mode markdown
 
-CREATE TEMP TABLE calls AS
+CREATE TEMP TABLE calls_all AS
 SELECT
   CASE WHEN json_extract(data,'\$.tool') = 'skill'
        THEN json_extract(data,'\$.state.input.name')
@@ -96,15 +116,20 @@ WHERE data LIKE '%skill%'
   AND json_extract(data,'\$.type') = 'tool'
   AND (json_extract(data,'\$.tool') = 'skill'
        OR json_extract(data,'\$.tool') LIKE 'skill\_%' ESCAPE '\')
-  AND json_extract(data,'\$.state.time.start') >= $SINCE;
+  AND json_extract(data,'\$.state.time.start') > 0;
+
+-- One scan, two tables. calls_all keeps the full history so the unused table can
+-- say when a skill was last used even though the window says it was not used at
+-- all; calls is the windowed view every other section works from.
+CREATE TEMP TABLE calls AS SELECT * FROM calls_all WHERE t_start >= $SINCE;
 
 CREATE TEMP TABLE routed_since AS
   SELECT skill, MIN(t_start) AS t0 FROM calls WHERE via = 'routed' GROUP BY skill;
 
 CREATE TEMP TABLE routing_from AS SELECT MIN(t0) AS t0 FROM routed_since;
 
-CREATE TEMP TABLE installed(skill TEXT);
-INSERT INTO installed(skill) VALUES $INSTALLED;
+CREATE TEMP TABLE installed(skill TEXT, scope TEXT);
+INSERT INTO installed(skill, scope) VALUES $INSTALLED;
 
 .mode list
 -- The two routing sections only mean anything when something is registering
@@ -195,14 +220,20 @@ GROUP BY 1, 2
 ORDER BY skill, runs DESC;
 
 .print ''
-.print '## Installed but never used'
+.print '## $UNUSED_HEADING'
 .print ''
 
-SELECT i.skill AS skill
+SELECT
+  i.skill                                              AS skill,
+  group_concat(DISTINCT i.scope)                       AS scope,
+  (SELECT COUNT(*) FROM calls_all a WHERE a.skill = i.skill)  AS calls_ever,
+  COALESCE(date((SELECT MAX(t_start) FROM calls_all a WHERE a.skill = i.skill)/1000,
+                'unixepoch'), 'never')                 AS last_used_ever
 FROM installed i
 WHERE i.skill <> ''
   AND i.skill NOT IN (SELECT skill FROM calls WHERE skill IS NOT NULL)
-ORDER BY 1;
+GROUP BY i.skill
+ORDER BY calls_ever ASC, i.skill;
 
 .print ''
 .print '## Dormant (used, but not recently)'

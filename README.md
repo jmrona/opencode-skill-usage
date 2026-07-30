@@ -25,9 +25,11 @@ So this is a shell script wrapped in a command. It answers the same questions a 
 
 **Model that actually served each routed skill.** More than one row for a skill means fallbacks happened, and the split tells you how often. This is how you find out that the local model you carefully configured has been serving a quarter of its own calls because the server keeps going down. The model is resolved from the tool part's metadata, falling back to the child session row and then to the child session title.
 
-**Installed but never used.** Computed against the skills actually on disk, not a hand-maintained list.
+**Installed but not used.** Every installed skill with no invocation in the window, computed against the skills actually on disk — both `~/.config/opencode/skills/` and the project's `.opencode/skills/`, since opencode loads from both and reading only one would report a project skill as not installed. A `scope` column says which, and `global,project` marks a name present in both, which opencode itself warns about as a duplicate.
 
-**Dormant.** Used at some point, but not in the last two weeks, with days idle.
+Two columns exist to keep an important distinction visible: `calls_ever` and `last_used_ever` are computed over your whole history regardless of the window. So with `/skill-usage 30`, a skill last used two months ago appears here with the date it was last used, rather than being lumped in with skills that have never run at all. The heading changes to match — "never used" is only claimed when the window is your entire history.
+
+**Dormant.** Used within the window, but not in the last two weeks, with days idle. Narrowing the window moves skills out of here and into the unused table, so the two never double-report.
 
 ## Install
 
@@ -70,6 +72,7 @@ A usage report is easy to over-trust, so the command's prompt is explicit about 
 
 ## Limitations
 
+- Project skills are read from `./.opencode/skills/`, relative to where the command runs. opencode runs commands from the project root, so this resolves correctly there; running the script by hand from elsewhere needs `PROJECT_SKILLS_DIR` set.
 - Reads opencode's internal schema (`part.data` JSON, `session`). Nothing here is a public API, so a future opencode release could change the shape and break the queries.
 - Skill names are recovered from routed tool names by turning underscores back into dashes, since `skill_quick_explain` is how `quick-explain` is registered. A skill with a genuine underscore in its name would be mislabelled.
 - With `subtask: true`, the usage table is reproduced by the model rather than printed directly. The prompt instructs it to copy the table verbatim, but if you ever see figures that look off, run the script directly to confirm.
