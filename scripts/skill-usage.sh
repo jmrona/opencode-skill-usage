@@ -92,6 +92,17 @@ else
   UNUSED_HEADING="Installed but never used"
 fi
 
+# Delimiters around the two tables the command needs to relay. Off unless asked
+# for, so running the script in a terminal stays clean. They exist because a model
+# told to "reproduce the usage table" summarises it instead; given an explicit
+# opaque block to copy between two markers, it has nothing to summarise.
+if [ -n "${SKILL_USAGE_MARKERS:-}" ]; then
+  M_USAGE_A='<<<TABLE:USAGE>>>'; M_USAGE_B='<<<END:USAGE>>>'
+  M_UNUSED_A='<<<TABLE:UNUSED>>>'; M_UNUSED_B='<<<END:UNUSED>>>'
+else
+  M_USAGE_A=''; M_USAGE_B=''; M_UNUSED_A=''; M_UNUSED_B=''
+fi
+
 echo "# Skill usage report"
 echo
 echo "Window: **$WINDOW** · database: \`$DB\` · generated $(date '+%Y-%m-%d %H:%M')"
@@ -179,6 +190,7 @@ Fix: deny the leaking skill in permission.skill so only the routed tool remains.
 .print ''
 .print '## Usage'
 .print ''
+.print '$M_USAGE_A'
 
 SELECT
   c.skill                                                                     AS skill,
@@ -193,6 +205,8 @@ SELECT
 FROM calls c
 GROUP BY c.skill, via
 ORDER BY calls DESC;
+
+.print '$M_USAGE_B'
 
 .mode list
 SELECT '
@@ -224,6 +238,7 @@ ORDER BY skill, runs DESC;
 .print ''
 .print '## $UNUSED_HEADING'
 .print ''
+.print '$M_UNUSED_A'
 
 SELECT
   i.skill                                              AS skill,
@@ -236,6 +251,8 @@ WHERE i.skill <> ''
   AND i.skill NOT IN (SELECT skill FROM calls WHERE skill IS NOT NULL)
 GROUP BY i.skill
 ORDER BY calls_ever ASC, i.skill;
+
+.print '$M_UNUSED_B'
 
 .print ''
 .print '## Dormant (used, but not recently)'

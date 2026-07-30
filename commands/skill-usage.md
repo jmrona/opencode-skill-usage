@@ -1,9 +1,9 @@
 ---
 description: How your skills are actually being used — routing leaks, fallbacks, dead skills
-# Pin a cheap, fast model here if you like — reading a handful of small tables and
-# writing a few paragraphs does not need your best one. Left unset so it uses your
-# current model out of the box.
+# Pin a cheap, fast model here if you like — copying two blocks and writing a few
+# paragraphs does not need your best one. Left unset so it uses your current model.
 # model: anthropic/claude-haiku-4-20250514
+subtask: true
 ---
 
 Below is a report generated from opencode's own SQLite store. It is retroactive: it
@@ -12,16 +12,49 @@ covers history that already exists, not data collected since some plugin was ins
 Optionally pass a number of days to narrow the window (`/skill-usage 30`); with no
 argument it covers all history.
 
-!`bash ~/.config/opencode/scripts/skill-usage.sh $ARGUMENTS`
+!`SKILL_USAGE_MARKERS=1 bash ~/.config/opencode/scripts/skill-usage.sh $ARGUMENTS`
 
-The report above is already visible to the user — it is part of this prompt, not
-something you need to relay. **Do not reproduce any of its tables.** Repeating them
-would only duplicate what is on screen, and a model retyping a table is a good way
-to introduce numbers that were never in it.
+---
 
-Write only a short commentary: a handful of paragraphs, leading with whatever is
-most worth acting on. Cite figures from the tables in prose where they support a
-point.
+This runs in a subtask, so the report above never reaches the user — only your
+final message does. Two of its tables have to be carried across, and the rest is
+yours to interpret.
+
+**Your reply must be exactly the template below**, with each placeholder replaced.
+Do not add headings, preambles, or anything before the first line of it.
+
+```
+## Skills used
+
+[INSERT_USAGE_TABLE_HERE]
+
+## [INSERT_UNUSED_HEADING_HERE]
+
+[INSERT_UNUSED_TABLE_HERE]
+
+## What stands out
+
+[YOUR COMMENTARY]
+```
+
+Filling the placeholders:
+
+- `[INSERT_USAGE_TABLE_HERE]` → the text between `<<<TABLE:USAGE>>>` and
+  `<<<END:USAGE>>>`, without the markers themselves.
+- `[INSERT_UNUSED_HEADING_HERE]` → the heading the report printed above that
+  section. It reads "Installed but never used" or "Installed but not used in the
+  last N days" depending on the window, and that difference is the point.
+- `[INSERT_UNUSED_TABLE_HERE]` → the text between `<<<TABLE:UNUSED>>>` and
+  `<<<END:UNUSED>>>`, without the markers.
+- `[YOUR COMMENTARY]` → a handful of paragraphs, no more.
+
+**Treat the text between the markers as opaque.** Copy it character for character.
+Do not read it for content when copying, do not re-sort rows, re-align columns,
+round numbers, drop columns, or shorten anything. It is already formatted. If a
+marked block is empty, put "None." in its place rather than inventing rows.
+
+The other sections — routing leaks, the model breakdown, dormant — are not copied.
+They exist to inform your commentary; cite their figures in prose.
 
 What to look for, and how to read it honestly:
 
