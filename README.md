@@ -45,7 +45,17 @@ Restart opencode and type `/skill-usage`.
 
 Requires `bash` and the `sqlite3` CLI, which ships with macOS and most Linux distributions.
 
-The command runs with `subtask: true`, so the full report stays inside a subtask and only the usage table plus a short commentary reach your main conversation. Drop that line from the frontmatter if you would rather see every table inline, at the cost of the context they occupy. There is also a commented-out `model:` line if you want to pin a cheap model for the commentary.
+The report is printed straight into the conversation and the model only adds a
+commentary on top. It used to run in a subtask to keep the tables out of context,
+with the model asked to reproduce the ones worth seeing — that does not work.
+Anything you want to *see* from inside a subtask has to be retyped by the model,
+and models summarise tables instead of copying them, or copy them with numbers
+that drift. Visible and out-of-context are mutually exclusive here, so the tables
+are printed deterministically by the script.
+
+There is a commented-out `model:` line in the frontmatter if you want to pin a
+cheap model for the commentary; reading a few small tables and writing a couple of
+paragraphs does not need your best one.
 
 You can skip the command entirely and run the script on its own, which is the lightest option of all:
 
@@ -75,7 +85,6 @@ A usage report is easy to over-trust, so the command's prompt is explicit about 
 - Project skills are read from `./.opencode/skills/`, relative to where the command runs. opencode runs commands from the project root, so this resolves correctly there; running the script by hand from elsewhere needs `PROJECT_SKILLS_DIR` set.
 - Reads opencode's internal schema (`part.data` JSON, `session`). Nothing here is a public API, so a future opencode release could change the shape and break the queries.
 - Skill names are recovered from routed tool names by turning underscores back into dashes, since `skill_quick_explain` is how `quick-explain` is registered. A skill with a genuine underscore in its name would be mislabelled.
-- With `subtask: true`, the usage table is reproduced by the model rather than printed directly. The prompt instructs it to copy the table verbatim, but if you ever see figures that look off, run the script directly to confirm.
 - Duration and error columns reflect what opencode recorded; a skill that failed in a way opencode did not mark as an error will not show up as one.
 
 ## Licence

@@ -4,7 +4,6 @@ description: How your skills are actually being used — routing leaks, fallback
 # writing a few paragraphs does not need your best one. Left unset so it uses your
 # current model out of the box.
 # model: anthropic/claude-haiku-4-20250514
-subtask: true
 ---
 
 Below is a report generated from opencode's own SQLite store. It is retroactive: it
@@ -15,25 +14,14 @@ argument it covers all history.
 
 !`bash ~/.config/opencode/scripts/skill-usage.sh $ARGUMENTS`
 
-This runs in a subtask, so only your final message reaches the user — everything
-above stays here. Your reply must therefore be, in this exact order and nothing
-else:
+The report above is already visible to the user — it is part of this prompt, not
+something you need to relay. **Do not reproduce any of its tables.** Repeating them
+would only duplicate what is on screen, and a model retyping a table is a good way
+to introduce numbers that were never in it.
 
-1. **The table under `## Usage`, copied verbatim**, keeping its heading.
-2. **The table under the "Installed but…" heading, copied verbatim**, keeping that
-   heading exactly as the report printed it — it says "never used" or "not used in
-   the last N days" depending on the window, and the difference matters.
-   If that section has no table, say "Every installed skill was used in this
-   window." instead of inventing one.
-3. **A short commentary**, a handful of paragraphs at most.
-
-Copied verbatim means character for character, header row and separator included.
-Do not recompute, re-sort, re-format, round, or drop columns. If you cannot copy a
-table exactly, say so rather than approximating.
-
-Do not reproduce the remaining sections — routing leaks, the model breakdown and
-dormant. They exist to inform your commentary, not to be pasted; refer to their
-numbers in prose instead. Lead with whatever is most worth acting on.
+Write only a short commentary: a handful of paragraphs, leading with whatever is
+most worth acting on. Cite figures from the tables in prose where they support a
+point.
 
 What to look for, and how to read it honestly:
 
