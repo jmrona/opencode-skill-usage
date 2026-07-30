@@ -19,14 +19,21 @@ This runs in a subtask, so only your final message reaches the user — everythi
 above stays here. Your reply must therefore be, in this exact order and nothing
 else:
 
-1. **The table under `## Usage`, copied verbatim.** Character for character, header
-   row and separator included. Do not recompute, re-sort, re-format, round, or drop
-   columns. If you cannot copy it exactly, say so rather than approximating.
-2. **A short commentary**, a handful of paragraphs at most.
+1. **The table under `## Usage`, copied verbatim**, keeping its heading.
+2. **The table under the "Installed but…" heading, copied verbatim**, keeping that
+   heading exactly as the report printed it — it says "never used" or "not used in
+   the last N days" depending on the window, and the difference matters.
+   If that section has no table, say "Every installed skill was used in this
+   window." instead of inventing one.
+3. **A short commentary**, a handful of paragraphs at most.
 
-Do not reproduce the other sections — the leaks, model, never-used and dormant
-tables exist to inform your commentary, not to be pasted. Refer to their numbers in
-prose instead. Lead with whatever is most worth acting on.
+Copied verbatim means character for character, header row and separator included.
+Do not recompute, re-sort, re-format, round, or drop columns. If you cannot copy a
+table exactly, say so rather than approximating.
+
+Do not reproduce the remaining sections — routing leaks, the model breakdown and
+dormant. They exist to inform your commentary, not to be pasted; refer to their
+numbers in prose instead. Lead with whatever is most worth acting on.
 
 What to look for, and how to read it honestly:
 
