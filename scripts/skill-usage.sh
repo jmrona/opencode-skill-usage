@@ -22,11 +22,17 @@
 set -uo pipefail
 
 DAYS="${1:-0}"
-# opencode loads skills from both places, so a report that reads only one of them
-# will call a project skill "not installed". Commands run from the project root,
-# which is what makes the relative path work.
+
+# opencode searches six locations for skills, not two:
+#   .opencode/skills/   ~/.config/opencode/skills/
+#   .claude/skills/     ~/.claude/skills/
+#   .agents/skills/     ~/.agents/skills/
+# and for the project-local ones it walks up from the working directory to the git
+# worktree root, loading matches at every level. Reading fewer than all of them
+# makes this report claim a skill is not installed when it plainly is — which is
+# exactly what happened before: skills installed under ~/.claude/skills showed up
+# as scope "other" because nothing looked there.
 SKILLS_DIR="${SKILLS_DIR:-$HOME/.config/opencode/skills}"
-PROJECT_SKILLS_DIR="${PROJECT_SKILLS_DIR:-./.opencode/skills}"
 
 # --- locate the database -----------------------------------------------------
 find_db() {
@@ -78,9 +84,38 @@ emit_scope() {
     printf "('%s','%s')" "${n//\'/\'\'}" "$scope"
   done
 }
+
+# Every directory from the working directory up to the git worktree root, which is
+# where opencode stops walking. Falls back to the working directory alone outside a
+# repository.
+project_roots() {
+  local top cur
+  top="$(git rev-parse --show-toplevel 2>/dev/null)"
+  cur="$PWD"
+  if [ -z "$top" ]; then echo "$cur"; return 0; fi
+  while :; do
+    echo "$cur"
+    [ "$cur" = "$top" ] && break
+    [ "$cur" = "/" ] && break
+    cur="$(dirname "$cur")"
+  done
+}
+
 installed_values() {
-  emit_scope "$SKILLS_DIR" global
-  emit_scope "$PROJECT_SKILLS_DIR" project
+  emit_scope "$SKILLS_DIR"           global
+  emit_scope "$HOME/.claude/skills"  global:claude
+  emit_scope "$HOME/.agents/skills"  global:agents
+  if [ -n "${PROJECT_SKILLS_DIR:-}" ]; then
+    # Explicit override, used by the tests.
+    emit_scope "$PROJECT_SKILLS_DIR" project
+  else
+    local r
+    while IFS= read -r r; do
+      emit_scope "$r/.opencode/skills" project
+      emit_scope "$r/.claude/skills"   project:claude
+      emit_scope "$r/.agents/skills"   project:agents
+    done < <(project_roots)
+  fi
   [ $installed_first -eq 1 ] && printf "('','')"
 }
 INSTALLED="$(installed_values)"
