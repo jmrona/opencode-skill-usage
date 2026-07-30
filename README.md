@@ -21,7 +21,7 @@ So this is a shell script wrapped in a command. It answers the same questions a 
 
 **Routing leaks.** Only shown if something is actually routing skills — this section and the model breakdown below are omitted entirely when nothing registers `skill_*` tools, which is the common case. If you use something like [skill-model-router](https://github.com/jmrona/skill-model-router-plugin) to pin a model per skill, that skill is still reachable through opencode's native `skill` tool — which runs it inline on the session model, quietly defeating the routing. This section counts how often that happened, and only counts calls made *after* routing became active for that skill, so historic calls from before you set it up are shown separately rather than inflating the number. The fix is a `deny` entry in `permission.skill`.
 
-**Usage.** Every skill, split by how it was invoked (`native` vs `routed`), with call counts, error rate, mean duration and last use.
+**Usage.** Every skill, split by how it was invoked (`native` vs `routed`), with its scope, call counts, error rate, mean duration and last use. A scope of `other` means the skill ran but is not in either directory scanned — it came from a plugin, or from a different project.
 
 **Model that actually served each routed skill.** More than one row for a skill means fallbacks happened, and the split tells you how often. This is how you find out that the local model you carefully configured has been serving a quarter of its own calls because the server keeps going down. The model is resolved from the tool part's metadata, falling back to the child session row and then to the child session title.
 

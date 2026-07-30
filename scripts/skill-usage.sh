@@ -181,15 +181,17 @@ Fix: deny the leaking skill in permission.skill so only the routed tool remains.
 .print ''
 
 SELECT
-  skill,
+  c.skill                                                                     AS skill,
+  COALESCE((SELECT group_concat(DISTINCT i.scope) FROM installed i
+            WHERE i.skill = c.skill), 'other')                                AS scope,
   via,
   COUNT(*)                                                                    AS calls,
   SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END)                           AS errors,
   ROUND(100.0 * SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) / COUNT(*), 1) AS err_pct,
   ROUND(AVG(t_end - t_start)/1000.0, 1)                                       AS avg_s,
   date(MAX(t_start)/1000,'unixepoch')                                         AS last_used
-FROM calls
-GROUP BY skill, via
+FROM calls c
+GROUP BY c.skill, via
 ORDER BY calls DESC;
 
 .mode list
@@ -251,5 +253,6 @@ HAVING days_idle >= 14
 ORDER BY days_idle DESC;
 
 .print ''
-.print 'Skills used here but missing from the installed list are project-level or came with a plugin.'
+.print 'A scope of "other" means the skill ran but is not in either directory scanned:'
+.print 'it came from a plugin, or from a project other than this one.'
 SQL
